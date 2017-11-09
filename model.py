@@ -10,7 +10,7 @@ def conv_relu(input, kernel_shape, bias_shape):
         initializer=tf.random_normal_initializer())
     # Create variable named "biases".
     biases = tf.get_variable("biases", bias_shape,
-        initializer=tf.constant_initializer(0.0))
+        initializer=tf.constant_initializer(0.1))
     conv = tf.nn.conv2d(input, weights,
         strides=[1, 1, 1, 1], padding='VALID')
     return tf.nn.relu(conv + biases)
@@ -72,8 +72,7 @@ class Model:
         with tf.name_scope("optimization"):
             optimizer = tf.train.AdamOptimizer(learning_rate)
             gvs = optimizer.compute_gradients(self.loss)
-            capped_gvs = [(tf.clip_by_value(grad, -5, 5), var) for grad, var in gvs]
-            self.optimize = optimizer.apply_gradients(capped_gvs)
+            self.optimize = optimizer.apply_gradients(gvs)
 
         # Operation for initializing the variables
         self.init = tf.global_variables_initializer()
