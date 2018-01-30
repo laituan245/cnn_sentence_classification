@@ -20,6 +20,7 @@ weights = load_glove_vectors(GLOVE_VECTORS_FILE, dictionary, emb_size=EMBEDDING_
 model = Model(max_sent_len = dataset.max_sent_len, num_labels = 2,
               vocab_size = dictionary.n_words, embedding_dim = EMBEDDING_DIM,
               learning_rate = LEARNING_RATE)
+saver = tf.train.Saver()
 
 # Start TensorFlow
 with tf.Session() as sess:
@@ -39,3 +40,6 @@ with tf.Session() as sess:
             print('===> Iter {}: | Train acc {:.4f} | Test acc {:.4f}'
                   .format(ix, np.mean(train_accuracies[-500:]), test_accuracy))
             sys.stdout.flush()
+            # Save the model to disk
+            saver.save(sess, './models/my_first_model')
+            print('Saved the lastest model to disk\n')
