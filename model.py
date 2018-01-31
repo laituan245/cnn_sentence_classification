@@ -6,14 +6,30 @@ import tensorflow as tf
 
 def conv_relu(input, kernel_shape, bias_shape):
     # Create variable named "weights".
-    weights = tf.get_variable("weights", kernel_shape,
-        initializer=tf.random_normal_initializer())
+    with tf.variable_scope("conv_weights"):
+        weights = tf.get_variable("weights", kernel_shape,
+            initializer=tf.random_normal_initializer())
+        variable_summaries(weights)
     # Create variable named "biases".
-    biases = tf.get_variable("biases", bias_shape,
-        initializer=tf.constant_initializer(0.1))
+    with tf.variable_scope("conv_biases"):
+        biases = tf.get_variable("biases", bias_shape,
+            initializer=tf.constant_initializer(0.1))
+        variable_summaries(biases)
     conv = tf.nn.conv2d(input, weights,
         strides=[1, 1, 1, 1], padding='VALID')
     return tf.nn.relu(conv + biases)
+
+def variable_summaries(var):
+    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+    with tf.name_scope('summaries'):
+        mean = tf.reduce_mean(var)
+        tf.summary.scalar('mean', mean)
+        with tf.name_scope('stddev'):
+            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+        tf.summary.scalar('stddev', stddev)
+        tf.summary.scalar('max', tf.reduce_max(var))
+        tf.summary.scalar('min', tf.reduce_min(var))
+        tf.summary.histogram('histogram', var)
 
 class Model:
     def __init__(self, max_sent_len, num_labels, vocab_size, embedding_dim,
@@ -55,8 +71,12 @@ class Model:
             features_drop = tf.nn.dropout(features, self.keep_prob)
 
         with tf.variable_scope("predictions"):
-            final_w = tf.Variable(tf.random_normal([3 * out_channels, num_labels]))
-            final_b = tf.Variable(tf.random_normal([num_labels]))
+            with tf.variable_scope('final_weight'):
+                final_w = tf.Variable(tf.random_normal([3 * out_channels, num_labels]), name='final_w')
+                variable_summaries(final_w)
+            with tf.variable_scope('final_bias'):
+                final_b = tf.Variable(tf.random_normal([num_labels]), name='final_bias')
+                variable_summaries(final_b)
             self.scores = tf.nn.xw_plus_b(features_drop, final_w, final_b)
             self.prediction = tf.argmax(self.scores, 1)
 
@@ -79,6 +99,9 @@ class Model:
 
         # Operation to save and restore all the variables.
         self.saver = tf.train.Saver()
+
+        # merge all summaries into a single "operation" which we can execute in a session
+        self.summary_op = tf.summary.merge_all()
 
     def train(self, sess, batch, keep_prob = 0.5):
         batch_sentences, batch_targets = batch
